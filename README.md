@@ -22,3 +22,9 @@ http://localhost:8080/IyEvdXNyL2Jpbi9lbnYgcnVieQoKcHJpbnQgImhlbGxvIHdvcmxkIgo=
 
 #### License
 The BSD License http://opensource.org/licenses/bsd-license.php.
+
+#### Todo
+ - Write some godocs.
+ - Add SSL support.
+ - Add more options for hook handling.
+ - Maybe add a config file.

@@ -21,6 +21,7 @@ var password = flag.String("password", "test", "Password for basic auth.")
 func Handler(w http.ResponseWriter, r *http.Request) {
 	a := AuthHandler(w,r)
 	if !a {
+		fmt.Fprintf(w, "%s", "Not Authorized.")
 		return
 	}
 	src := r.URL.Path[len("/"):]
@@ -45,6 +46,7 @@ func SaveAndExec(src string) (string, error) {
 	}
 	file.WriteString(string(decoded))
 	file.Chmod(0777)
+	file.Close()
 	c := exec.Command("/tmp/" + src)
 	output, err := c.CombinedOutput()
 	if err != nil {

@@ -25,7 +25,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	src := r.URL.Path[len("/"):]
-	output, err := SaveAndExec(src)
+	command, err := Save(src)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	output, err := Exec(command)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -33,7 +38,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", output)
 }
 
-func SaveAndExec(src string) (string, error) {
+func Save(src string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(src)
 	if err != nil {
 		log.Printf("Cannot decode %q: %s", src, err)
@@ -44,13 +49,18 @@ func SaveAndExec(src string) (string, error) {
 		log.Printf("Cannot save %q: %s", src, err)
 		return "", err
 	}
-	file.WriteString(string(decoded))
+	r := strings.NewReplacer("\r", "")
+	file.WriteString(r.Replace(string(decoded)))
 	file.Chmod(0777)
 	file.Close()
-	c := exec.Command("/tmp/" + src)
+	return string(src), nil
+}
+
+func Exec(command string) (string, error) {
+	c := exec.Command("/tmp/" + command)
 	output, err := c.CombinedOutput()
 	if err != nil {
-		log.Printf("Cannot run %q: %s", decoded, err)
+		log.Printf("Cannot run %s", err)
 		return "", err
 	}
 	return string(output), nil

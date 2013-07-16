@@ -72,13 +72,13 @@ func EncodeHandler(w http.ResponseWriter, r *http.Request) {
 			"<h2>Done. <a href='%s'>Click Here</a></h2>",
 			base64.URLEncoding.EncodeToString([]byte(body)))
 	}
-    fmt.Fprintf(w,
+	fmt.Fprintf(w,
 		"<h2>Encode</h2>"+
-        "<form action=\"/encode\" method=\"POST\">"+
-        "<p><textarea name=\"body\" style='height:200px;width:400px'>%s</textarea></p>"+
-        "<p><input type=\"submit\" value=\"Submit\"></p>"+
-        "</form>", body)
-    fmt.Fprintf(w, "</body></html>")
+		"<form action=\"/encode\" method=\"POST\">"+
+		"<p><textarea name=\"body\" style='height:200px;width:400px'>%s</textarea></p>"+
+		"<p><input type=\"submit\" value=\"Submit\"></p>"+
+		"</form>", body)
+	fmt.Fprintf(w, "</body></html>")
 }
 
 func AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {

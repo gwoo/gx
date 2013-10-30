@@ -3,14 +3,14 @@
 package main
 
 import (
+	"encoding/base64"
+	"flag"
 	"fmt"
 	"log"
-	"strings"
-	"encoding/base64"
 	"net/http"
 	"os"
 	"os/exec"
-	"flag"
+	"strings"
 )
 
 var port = flag.Int("port", 8080, "Port for the server.")
@@ -19,7 +19,7 @@ var username = flag.String("username", "demo", "Username for basic auth.")
 var password = flag.String("password", "test", "Password for basic auth.")
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	src := r.URL.Path[len("/"):]
+	src := r.URL.Path[1:]
 	command, err := Save(src)
 	if err != nil {
 		http.NotFound(w, r)
@@ -64,7 +64,7 @@ func Exec(command string) (string, error) {
 func EncodeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w,
 		"<html><title>Encode a Script</title>"+
-		"<body style='font-family: Monospace;'>")
+			"<body style='font-family: Monospace;'>")
 
 	body := r.FormValue("body")
 	if body != "" {
@@ -74,10 +74,10 @@ func EncodeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w,
 		"<h2>Encode</h2>"+
-		"<form action=\"/encode\" method=\"POST\">"+
-		"<p><textarea name=\"body\" style='height:200px;width:400px'>%s</textarea></p>"+
-		"<p><input type=\"submit\" value=\"Submit\"></p>"+
-		"</form>", body)
+			"<form action=\"/encode\" method=\"POST\">"+
+			"<p><textarea name=\"body\" style='height:200px;width:400px'>%s</textarea></p>"+
+			"<p><input type=\"submit\" value=\"Submit\"></p>"+
+			"</form>", body)
 	fmt.Fprintf(w, "</body></html>")
 }
 
@@ -131,5 +131,14 @@ func main() {
 	http.HandleFunc("/", AuthHandler(Handler))
 	http.HandleFunc("/encode", AuthHandler(EncodeHandler))
 	log.Printf("Connected to %s:%d", *host, *port)
-	http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+
+	_, cerr := os.Open("cert.pem")
+	_, kerr := os.Open("key.pem")
+
+	if os.IsNotExist(cerr) || os.IsNotExist(kerr) {
+		http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+		return
+	}
+	log.Printf("SSL enabled.")
+	http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), "cert.pem", "key.pem", nil)
 }

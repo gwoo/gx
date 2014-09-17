@@ -3,7 +3,9 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/base64"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -39,7 +41,8 @@ func Save(src string) (string, error) {
 		log.Printf("Cannot decode %q: %s", src, err)
 		return "", err
 	}
-	file, err := os.Create("/tmp/" + src)
+	name := filename(src) + ".gx"
+	file, err := os.Create("/tmp/" + name)
 	if err != nil {
 		log.Printf("Cannot save %q: %s", src, err)
 		return "", err
@@ -48,7 +51,7 @@ func Save(src string) (string, error) {
 	file.WriteString(r.Replace(string(decoded)))
 	file.Chmod(0777)
 	file.Close()
-	return string(src), nil
+	return name, nil
 }
 
 func Exec(command string) (string, error) {
@@ -141,4 +144,10 @@ func main() {
 	}
 	log.Printf("SSL enabled.")
 	http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), "cert.pem", "key.pem", nil)
+}
+
+func filename(name string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(name))
+	return hex.EncodeToString(hasher.Sum(nil))
 }

@@ -3,9 +3,11 @@
 package main
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -21,7 +23,11 @@ var username = flag.String("username", "demo", "Username for basic auth.")
 var password = flag.String("password", "test", "Password for basic auth.")
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	src := r.URL.Path[1:]
+	src, err := FindSrc(r)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
 	command, err := Save(src)
 	if err != nil {
 		http.NotFound(w, r)
@@ -33,6 +39,19 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "%s", output)
+}
+
+func FindSrc(r *http.Request) (string, error) {
+	method := strings.ToUpper(r.Method)
+	if method == "GET" {
+		return r.URL.Path[1:], nil
+	}
+	if method == "POST" {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		return buf.String(), nil
+	}
+	return "", errors.New("Encoded command string not found")
 }
 
 func Save(src string) (string, error) {

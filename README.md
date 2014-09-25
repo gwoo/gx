@@ -34,6 +34,10 @@ http://localhost:8080/IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiaGVsbG8i
 ### A simple echo using ruby
 http://localhost:8080/IyEvdXNyL2Jpbi9lbnYgcnVieQoKcHJpbnQgImhlbGxvIHdvcmxkIgo=
 
+### A simple echo using POST
+
+curl -X POST -d "IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiaGVsbG8i" -u "demo:test" http://localhost:8080/
+
 #### License
 The BSD License http://opensource.org/licenses/bsd-license.php.
 

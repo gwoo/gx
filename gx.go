@@ -22,18 +22,36 @@ var host = flag.String("host", "localhost", "Host for the server.")
 var username = flag.String("username", "demo", "Username for basic auth.")
 var password = flag.String("password", "test", "Password for basic auth.")
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	src, err := FindSrc(r)
+func main() {
+	flag.Parse()
+	http.HandleFunc("/favicon.ico", http.NotFound)
+	http.HandleFunc("/", authHandler(handler))
+	http.HandleFunc("/encode", authHandler(encodeHandler))
+	log.Printf("Connected to %s:%d", *host, *port)
+
+	_, cerr := os.Open("cert.pem")
+	_, kerr := os.Open("key.pem")
+
+	if os.IsNotExist(cerr) || os.IsNotExist(kerr) {
+		http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+		return
+	}
+	log.Printf("SSL enabled.")
+	http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), "cert.pem", "key.pem", nil)
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	src, err := findCommand(r)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	command, err := Save(src)
+	command, err := save(src)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	output, err := Exec(command)
+	output, err := run(command)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -41,7 +59,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", output)
 }
 
-func FindSrc(r *http.Request) (string, error) {
+func findCommand(r *http.Request) (string, error) {
 	method := strings.ToUpper(r.Method)
 	if method == "GET" {
 		return r.URL.Path[1:], nil
@@ -54,7 +72,7 @@ func FindSrc(r *http.Request) (string, error) {
 	return "", errors.New("Encoded command string not found")
 }
 
-func Save(src string) (string, error) {
+func save(src string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(src)
 	if err != nil {
 		log.Printf("Cannot decode %q: %s", src, err)
@@ -73,7 +91,7 @@ func Save(src string) (string, error) {
 	return name, nil
 }
 
-func Exec(command string) (string, error) {
+func run(command string) (string, error) {
 	c := exec.Command("/tmp/" + command)
 	output, err := c.CombinedOutput()
 	if err != nil {
@@ -83,7 +101,7 @@ func Exec(command string) (string, error) {
 	return string(output), nil
 }
 
-func EncodeHandler(w http.ResponseWriter, r *http.Request) {
+func encodeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w,
 		"<html><title>Encode a Script</title>"+
 			"<body style='font-family: Monospace;'>")
@@ -103,7 +121,7 @@ func EncodeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "</body></html>")
 }
 
-func AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func authHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL
 		for k, v := range r.Header {
@@ -145,24 +163,6 @@ func AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 		fmt.Fprintf(w, "Not Authorized.")
 		return
 	}
-}
-
-func main() {
-	flag.Parse()
-	http.HandleFunc("/favicon.ico", http.NotFound)
-	http.HandleFunc("/", AuthHandler(Handler))
-	http.HandleFunc("/encode", AuthHandler(EncodeHandler))
-	log.Printf("Connected to %s:%d", *host, *port)
-
-	_, cerr := os.Open("cert.pem")
-	_, kerr := os.Open("key.pem")
-
-	if os.IsNotExist(cerr) || os.IsNotExist(kerr) {
-		http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
-		return
-	}
-	log.Printf("SSL enabled.")
-	http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), "cert.pem", "key.pem", nil)
 }
 
 func filename(name string) string {
